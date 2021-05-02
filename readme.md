@@ -4,3 +4,6 @@
 #### 2. bind polyfill ---> bind.js
 #### 3. 深克隆 ---> clone.js
 #### 4. 柯里化 ---> curry.js
+#### 5. jsonp ---> jsonp.js
+#### 6. async await ---> async.js
+#### 7. 解析json ---> parse.js
