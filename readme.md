@@ -9,3 +9,4 @@
 #### 7. 解析json ---> parse.js
 #### 8. 简单实现Promise ---> promise.js
 #### 9. express ---> express.js
+#### A. redux ---> redux.js
