@@ -10,3 +10,5 @@
 #### 8. 简单实现Promise ---> promise.js
 #### 9. express ---> express.js
 #### A. redux ---> redux.js
+#### B. event ---> event.js
+#### C. package ---> package.js

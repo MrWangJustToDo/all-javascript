@@ -37,7 +37,11 @@ class Store {
   };
 
   subscribe = (listener) => {
-    this.listener.push(listener);
+    this.listeners.push(listener);
+
+    return () => {
+      this.listeners = this.listeners.filter((it) => it !== listener);
+    };
   };
 }
 
