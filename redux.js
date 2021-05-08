@@ -8,10 +8,16 @@ class Store {
     this.listener = [];
     if (this.middleware && this.middleware.length) {
       // 包装原始dispatch
-      this.dispatch = this.middleware.reduce(
-        (pre, current) => current(this)(pre),
-        this.initalDispatch
-      );
+      // 首先传入store
+      this.dispatch = this.middleware
+        .map((it) =>
+          it({
+            getState: this.getState,
+            dispatch: (action) => this.dispatch(action),
+          })
+        )
+        // 将后一个中间件  作为前一个中间件的next参数传入，...args最终为this.initalDispatch
+        .reduce((a, b) => (...args) => a(b(...args)))(this.initalDispatch);
       /*
       中间件的使用 
         (store) => (next) => (action) => {
@@ -24,7 +30,7 @@ class Store {
   }
 
   applyMiddleware = (...middleware) => {
-    return middleware.reverse();
+    return middleware;
   };
 
   getState = () => {
