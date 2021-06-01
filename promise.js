@@ -46,7 +46,7 @@ class MyPromise {
     this.callBack.rejectCallback = rejectCallback;
 
     // 返回一个新的Promise
-    return new MyPromise((resolve, reject) => {
+    const re = new MyPromise((resolve, reject) => {
       // 如果当前执行的时候，前一个Promise已经确定了状态
       if (this.state === MyPromise.Fulfilled) {
         setTimeout(() => {
@@ -83,6 +83,7 @@ class MyPromise {
         };
       }
     });
+    return re;
   };
 
   catch = (rejectCallback) => {

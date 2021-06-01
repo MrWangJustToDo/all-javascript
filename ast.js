@@ -1,6 +1,6 @@
 // 语法树解析 实现两个版本  parseHTML  parseJSX  parseJS  这是一个长期任务
 
-// 结果一个对象{tagName, attrs, children, value}
+// 结果一个对象{tagName, attrs, children, value}  还存在问题
 function parseHTML(htmlString) {
   const needSkip = [" ", "\n", '"', "'"];
   const needSkipObj = {};
@@ -20,6 +20,12 @@ function parseHTML(htmlString) {
     let stack = [];
     console.log(stack);
     while (index < str.length) {
+      // if (stack.length) {
+      //   const {value, valueEndIndex} = parseContent(str, index);
+      //   const item = stack[stack.length - 1];
+      //   item.value = item.value.length ? `${item.value}\n${value}` : value;
+      //   index = valueEndIndex;
+      // }
       const { tagName, isSingleTag, isEndTag, tagEndIndex, attrs, value } =
         parseTag(str, index);
       if (isSingleTag) {
@@ -77,8 +83,7 @@ function parseHTML(htmlString) {
           }
         } else {
           // 如果不是结束标签
-          // 则需要将当前标签放入栈顶
-          stack.push({ tagName, attrs, value });
+          stack.push({tagName, attrs, value});
         }
       }
       index = tagEndIndex;
@@ -104,7 +109,7 @@ function parseHTML(htmlString) {
         if (isSingleTag) {
           return { tagName, attrs, isSingleTag, tagEndIndex: attrsEndIndex };
         } else {
-          const { value, valueEndIndex } = parseValue(str, attrsEndIndex);
+          const { value, valueEndIndex } = parseContent(str, attrsEndIndex);
           return { tagName, value, attrs, tagEndIndex: valueEndIndex };
         }
       }
@@ -124,6 +129,8 @@ function parseHTML(htmlString) {
       } else if (str[i] === ">" || str[i] === " " || str[i] === "/") {
         i = skipIndex(str, i);
         return { tagName: re, tagNameEndIndex: i, isEndTag };
+      } else if (str[i] === "\n") {
+        continue;
       } else {
         re += str[i];
       }
@@ -155,8 +162,8 @@ function parseHTML(htmlString) {
       if (attrsArr[i].length) {
         let tempIndex = attrsArr[i].indexOf("=");
         if (tempIndex !== -1) {
-          let key = attrsArr[i].slice(0, tempIndex);
-          let value = attrsArr[i].slice(tempIndex + 1);
+          let key = parseValue(attrsArr[i].slice(0, tempIndex));
+          let value = parseValue(attrsArr[i].slice(tempIndex + 1));
           attrs[key] = value;
         } else {
           // 说明是直接写的属性名
@@ -171,11 +178,11 @@ function parseHTML(htmlString) {
     }
   }
 
-  function parseValue(str, index) {
+  function parseContent(str, index) {
     index = skipIndex(str, index);
     let value = "";
     while (str[index] !== "<") {
-      if (str[index] === ">" || str[index === " "]) {
+      if (str[index] === ">") {
         continue;
       } else {
         value += str[index];
@@ -183,6 +190,16 @@ function parseHTML(htmlString) {
       index++;
     }
     return { value, valueEndIndex: index };
+  }
+
+  function parseValue(str) {
+    let re = '';
+    for (let i = 0; i < str.length; i++) {
+      if (!(str[i] in needSkipObj)) {
+        re += str[i];
+      }
+    }
+    return re;
   }
 
   try {
