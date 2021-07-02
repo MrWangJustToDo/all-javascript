@@ -1,6 +1,6 @@
-// 语法树解析 实现两个版本  parseHTML  parseJSX  parseJS  这是一个长期任务
+// 语法树解析  parseHTML  parseJSX  parseJS  这是一个长期任务
 
-// 结果一个对象{tagName, attrs, children, value}  还存在问题
+// 结果一个对象{tagName, attrs, children, value}  还存在问题  规范情况下应该没有问题。。。
 function parseHTML(htmlString) {
   const needSkip = [" ", "\n", '"', "'"];
   const needSkipObj = {};
@@ -203,6 +203,7 @@ function parseHTML(htmlString) {
   }
 
   try {
+    // 只适合解析JSX等规范的内容
     return startParse(htmlString.trim(), 0);
   } catch (e) {}
 }
