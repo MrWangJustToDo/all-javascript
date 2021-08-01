@@ -3,7 +3,7 @@ const http = require("http");
 
 const responseMiddleWare = (ctx, next) => {
   return next().then(() => {
-    console.log('发出响应');
+    console.log("发出响应");
     if (ctx.body) {
       ctx.res.end(ctx.body);
     }
@@ -22,7 +22,7 @@ Koa.prototype.compose = function (middleware, next) {
   return function wrapMiddleWare(params) {
     let index = -1;
     function dispatch(i) {
-      if (i <= next) {
+      if (i <= index) {
         throw new Error();
       }
       index = i;
