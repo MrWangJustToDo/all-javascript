@@ -45,7 +45,13 @@ Koa.prototype.use = function (middleware) {
 
 Koa.prototype.handle = async function (req, res) {
   const ctx = { req, res };
-  return await this.compose(this.middleware)(ctx);
+  // 测试next的错误情况
+  const next = (p, next) => {
+    console.log(p);
+    next();
+  };
+  // 验证错误的情况  不出所料
+  return await this.compose(this.middleware/* , next */)(ctx);
 };
 
 Koa.prototype.listen = function (...args) {
