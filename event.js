@@ -1,5 +1,3 @@
-// 发布订阅模式
-
 class Event {
   obj = {};
 
@@ -21,7 +19,7 @@ class Event {
 
   emit(eventName, ...args) {
     if (eventName in this.obj) {
-      const callBacks = this.objp[eventName];
+      const callBacks = this.obj[eventName];
       callBacks.forEach((it) => {
         it(...args);
       });

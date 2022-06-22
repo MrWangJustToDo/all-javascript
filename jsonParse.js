@@ -1,7 +1,7 @@
 // json解析器
 
 var jsonText =
-  '[111,222e100, {"a":3},{ "b " :true,"c":"fooobar","d":[1,false,[null,4,{"x":1,"y":2, "e": undefined}]]}]';
+  '[111,222e100, {"a":3},{ "b " :true,"c":"foobar","d":[1,false,[null,4,{"x":1,"y":2, "e": undefined}]]}],{a:1}';
 
 function parse(jsonString) {
   let index = 0;
@@ -96,3 +96,5 @@ function parse(jsonString) {
     throw new Error("必须传入一个有效字符串");
   }
 }
+
+console.log(parse(jsonText));

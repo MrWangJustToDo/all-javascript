@@ -57,6 +57,7 @@ class Observe {
       Object.defineProperty(data, "__ob__", {
         value: this,
         enumerable: false,
+        configurable: false,
       });
       if (Array.isArray(data)) {
         this.observeArray(data);
@@ -100,20 +101,20 @@ class Observe {
   observeObj(data) {
     const keys = Object.keys(data);
     for (let key of keys) {
-      this.defineReactive(data, key);
+      this.defineReactive(data, key, data[key]);
     }
   }
 
   // 这个过程需要完善
-  defineReactive(obj, key) {
+  defineReactive(obj, key, value) {
     var dep = new Dep();
     // 先不考虑当前属性是一个getter
-    let value = obj[key];
     let childOb = observable(value);
     Object.defineProperty(obj, key, {
       get: function reactiveGetter() {
         if (currentWatcher) {
           dep.onDep();
+          // 关联到当前的子项
           if (childOb) {
             childOb.dep.onDep();
           }
@@ -128,7 +129,6 @@ class Observe {
         value = newVal;
         childOb = observable(newVal);
         dep.notify();
-        // 这个地方不需要子依赖更新吗。。。
       },
     });
   }
@@ -146,8 +146,6 @@ class Dep {
       if (!this.ids[currentWatcher.id]) {
         this.ids[currentWatcher.id] = true;
         this.watchers.push(currentWatcher);
-      } else {
-        console.log("watchers id 已经存在", currentWatcher);
       }
     } else {
       console.log("当前不存在表达式调用");
@@ -157,6 +155,9 @@ class Dep {
   // 重新运行所有依赖的表达式
   notify() {
     const watchers = this.watchers.slice(0);
+    // 清除当前依赖
+    this.ids = {};
+    this.watchers = [];
     watchers.forEach((watcher) => watcher.run());
   }
 
@@ -238,5 +239,6 @@ new ObserveAction(data, {
   f: () => console.log(d[0], "d[0] 数组不能精确修改"),
   g: () => console.log(f, "f 修改"),
   h: () => console.log(f.g, "f.g 修改"),
+  i: () => console.log(c.t, "c.t 修改"),
   // g: { bg: () => console.log(a, "嵌套action  a修改") },
 });

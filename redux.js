@@ -1,117 +1,145 @@
-// redux  基于Context实现
+const INIT_ACTION = "_myRedux_init_action_";
 
 class Store {
-  constructor(reducer, initalState, middleware) {
-    this.reducer = reducer;
-    this.state = initalState;
-    this.middleware = middleware;
-    this.listener = [];
-    if (this.middleware && this.middleware.length) {
-      // 包装原始dispatch
-      // 首先传入store
-      this.dispatch = this.middleware
-        .map((it) =>
-          it({
-            getState: this.getState,
-            dispatch: (action) => this.dispatch(action),
-          })
-        )
-        // 将后一个中间件  作为前一个中间件的next参数传入，...args最终为this.initalDispatch
-        .reduce((a, b) => (...args) => a(b(...args)))(this.initalDispatch);
-      /*
-      中间件的使用 
-        (store) => (next) => (action) => {
-          调用 next() 进入下一个中间件
-        }
-      */
-    } else {
-      this.dispatch = this.initalDispatch;
-    }
+  listeners = [];
+
+  constructor(initialState, reducers) {
+    this.reducers = reducers;
+    this.initialState = initialState;
   }
 
-  applyMiddleware = (...middleware) => {
-    return middleware;
+  init = () => {
+    this.state = undefined;
+    this.dispatch({ type: INIT_ACTION });
+  };
+
+  dispatch = (action) => {
+    if (typeof action === "object") {
+      if (!action.type) {
+        throw new Error("redux action must have a type field");
+      }
+      const newState = runReducers(
+        this.reducers,
+        this.state || this.initialState,
+        action
+      );
+      if (newState === null || newState === undefined) {
+        throw new Error("get a invalid state");
+      }
+      this.state = newState;
+      // ignore initial
+      if (action.type !== INIT_ACTION) {
+        this._updateAll();
+      }
+    } else {
+      throw new Error("redux action must a object");
+    }
   };
 
   getState = () => {
     return this.state;
   };
 
-  initalDispatch = (action) => {
-    this.state = this.reducer(this.state, action);
-    this.listeners.forEach((listener) => listener());
-  };
-
-  subscribe = (listener) => {
-    this.listeners.push(listener);
+  subscribe = (node) => {
+    this.unSubscribe(node);
+    this.listeners.push(node);
 
     return () => {
-      this.listeners = this.listeners.filter((it) => it !== listener);
+      this.unSubscribe(node);
     };
   };
-}
 
-function createStore(reducer, initalState, middleware) {
-  return new Store(reducer, initalState, middleware);
-}
+  unSubscribe = (node) => {
+    this.listeners = this.listeners.filter((n) => n !== node);
+  };
 
-let StoreContext = createContext();
+  _updateAll() {
+    this.listeners.forEach((n) => n());
+  }
 
-// 实现react-redux的Provider组件, 用法<Provider store={store}></Provider>
-function Provider({ store, children }) {
-  return (
-    <StoreContext.Provider value={store}>{children}</StoreContext.Provider>
-  );
-}
-
-// 实现react-redux的useSelector() hook函数, 从store存储的数据中提取数据
-function useSelector(selector) {
-  let store = useContext(StoreContext);
-  return selector(store.getState());
-}
-
-// 实现react-redux的useDispath() hook函数, 使用store对象派发操作
-function useDispatch() {
-  let store = useContext(StoreContext);
-  return function (action) {
-    store.dispatch(action);
+  replaceReducer = (newReducers) => {
+    this.reducers = newReducers;
+    this.init();
   };
 }
 
-// 实现react-redux的useStore()  hook函数, 直接获取store对象
-function useStore() {
-  return useContext(StoreContext);
-}
-
-const bindActionCreators = (mapDispatchToProps, dispatch) => {
-  const re = {};
-  for (let key in mapDispatchToProps) {
-    re[key] = (data) => dispatch(mapDispatchToProps[key](data));
+const runReducers = (reducers, previousState, action) => {
+  let re = {};
+  if (typeof reducers === "object") {
+    for (let key in reducers) {
+      re[key] = runReducers(
+        reducers[key],
+        previousState ? previousState[key] : undefined,
+        action
+      );
+    }
+  } else {
+    re = reducers(previousState, action);
   }
+
   return re;
 };
 
-function connect(mapStateToProps, mapDispatchToProps) {
-  return function (Warper) {
-    return (props) => {
-      const store = useStore();
+// middleware (store) => (next) => (action) => {}
 
-      const { children } = props;
+const applyMiddleware =
+  (...middleware) =>
+  (store) =>
+    middleware.map((m) => m(store));
 
-      const stateToProps = mapStateToProps
-        ? mapStateToProps(store.getState(), props)
-        : {};
-      const dispathToProps = mapDispatchToProps
-        ? typeof mapDispatchToProps === "function"
-          ? mapDispatchToProps(store.dispatch, props)
-          : bindActionCreators(mapDispatchToProps, store.dispatch)
-        : {};
+const createStore = (reducers, initialState, middleware) => {
+  let targetInitialState =
+    typeof initialState !== "function" ? initialState : null;
 
-      return (
-        <Warper {...props} {...stateToProps} {...dispathToProps}>
-          {children}
-        </Warper>
-      );
-    };
+  let targetMiddleware =
+    typeof initialState === "function" ? initialState : middleware;
+
+  const store = new Store(targetInitialState, reducers);
+
+  let dispatch = store.dispatch;
+
+  const middlewareApi = {
+    getState: store.getState,
+    dispatch: (...args) => dispatch.call(null, ...args),
   };
-}
+
+  targetMiddleware = targetMiddleware ? targetMiddleware(middlewareApi) : [];
+
+  const originalDispatch = store.dispatch;
+
+  dispatch = targetMiddleware.length
+    ? targetMiddleware.reduce((p, c) => p(c))(originalDispatch)
+    : originalDispatch;
+
+  store.dispatch = dispatch;
+
+  store.init();
+
+  return store;
+};
+
+const combineReducers = (reducers) => reducers;
+
+const bindActionCreators = (actionCreator, dispatch) => {
+  if (typeof actionCreator === "function") {
+    return (...args) => {
+      return dispatch(actionCreator.call(null, ...args));
+    };
+  } else {
+    let assignActionCreator = { ...actionCreator };
+    for (let key in assignActionCreator) {
+      assignActionCreator[key] = bindActionCreators(
+        assignActionCreator[key],
+        dispatch
+      );
+    }
+    return assignActionCreator;
+  }
+};
+
+const Redux = {
+  createStore,
+  applyMiddleware,
+  combineReducers,
+  bindActionCreators,
+};
